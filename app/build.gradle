@@ -19,8 +19,8 @@ android {
     }
 }
 task copyTestResources(type: Copy) {
-    from("${projectDir}/src/main/assets")
-    into "${projectDir}/src/test/resources"
+    from("${projectDir}/src/main/assets/mocks")
+    into "${projectDir}/src/test/resources/mocks"
 }
 
 android.applicationVariants.all { variant ->

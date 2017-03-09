@@ -63,10 +63,10 @@ public class GistTest extends BaseApiTest {
     private static final String CREATE_DESCRIPTION = "An OkHttp Interceptor that returns mocked results if it has them.";
     @Test
     public void createGist() throws IOException {
-        ServiceLocator.put(OkHttpClient.class, OkHttpClientUtil.getOkHttpClient(null, MockBehavior.MOCK));
+        ServiceLocator.put(OkHttpClient.class, OkHttpClientUtil.getOkHttpClient(null, MockBehavior.MOCK_ONLY));
         Gist gist = new GistImpl();
         gist.setDescription(CREATE_DESCRIPTION);
-        gist.addFile(CREATE_FILE_NAME, readFromAsset("javaclass"));
+        gist.addFile(CREATE_FILE_NAME, readFromAsset("mocks/javaclass"));
         Observable<Gist> observable = ServiceInjector.resolve(RxEndpoints.class).createGist(gist);
         TestSubscriber<Gist> testSubscriber = new TestSubscriber<>();
         observable.subscribe(testSubscriber);

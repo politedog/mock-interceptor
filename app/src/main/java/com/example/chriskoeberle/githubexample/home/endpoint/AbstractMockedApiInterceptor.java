@@ -168,7 +168,7 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
             if (spec.matches(request.url(), request.method(), stringifyRequestBody(request))) {
                 mockFound = spec;
                 Response.Builder builder = new Response.Builder();
-                String bodyString = resolveAsset(spec.mFilename);
+                String bodyString = resolveAsset("mocks/"+spec.mFilename);
                 bodyString = substituteStrings(bodyString, request);
                 if(bodyString != null) {
                     ResponseBody body = ResponseBody.create(MediaType.parse(getMockedMediaType()), bodyString);
