@@ -22,4 +22,9 @@ public class UserImpl extends GithubObject implements User {
     public String getName() {
         return name;
     }
+
+    @Override
+    public String getLogin() {
+        return login;
+    }
 }

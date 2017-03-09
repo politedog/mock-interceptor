@@ -1,5 +1,6 @@
 package com.example.chriskoeberle.githubexample.home.model;
 
 public interface User {
-    public String getName();
+    String getName();
+    String getLogin();
 }
