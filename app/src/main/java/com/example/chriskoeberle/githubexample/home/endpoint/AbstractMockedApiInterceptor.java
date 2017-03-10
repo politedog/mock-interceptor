@@ -49,80 +49,85 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
     private final Context mContext;
     private final MockBehavior mMockBehavior;
 
-    protected final ArrayList<ResponseSpec> mResponseList = new ArrayList<>();
+    protected final ArrayList<NetworkCallSpec> mResponseList = new ArrayList<>();
     private ArrayList<StringSubstitutor> mSubstitutorList;
 
-    public static class ResponseSpec {
-        private final String mFilename;
-        private int mCode;
-        private String mMessage;
-        private final String mPattern;
-        private String mMethod;
-        private Map<String, String> mQueryParameters;
-        private String mBody;
-        private Set<String> mBodyContains;
+    public static class NetworkCallSpec {
+        private final String mResponseFilename;
+        private int mResponseCode;
+        private String mResponseMessage;
+        private final String mRequestUrlPattern;
+        private String mRequestMethod;
+        private Map<String, String> mRequestQueryParameters;
+        private String mRequestBody;
+        private Set<String> mRequestBodyContains;
 
-        protected ResponseSpec(String pattern, String filename) {
-            this.mPattern = pattern;
-            this.mFilename = filename;
-            this.mCode = HttpURLConnection.HTTP_OK;
-            this.mMessage = "OK";
-            this.mQueryParameters = new HashMap<>();
-            this.mMethod = "GET";
+        protected NetworkCallSpec(String requestPattern, String responseFilename) {
+            this.mRequestUrlPattern = requestPattern;
+            this.mResponseFilename = responseFilename;
+            this.mResponseCode = HttpURLConnection.HTTP_OK;
+            this.mResponseMessage = "OK";
+            this.mRequestQueryParameters = new HashMap<>();
+            this.mRequestMethod = "GET";
         }
 
-        public ResponseSpec setCode(int code) {
-            mCode = code;
+        public NetworkCallSpec setRequestCode(int code) {
+            mResponseCode = code;
             return this;
         }
 
-        public ResponseSpec setMethod(String method) {
-            mMethod = method;
+        public NetworkCallSpec setRequestMethod(String method) {
+            mRequestMethod = method;
             return this;
         }
 
-        public ResponseSpec addQueryParameter(String keyPattern, String valuePattern) {
-            this.mQueryParameters.put(keyPattern, valuePattern);
+        public NetworkCallSpec setResponseMessage(String message) {
+            this.mResponseMessage = message;
             return this;
         }
 
-        public ResponseSpec addBody(String body) {
-            if ("GET".equalsIgnoreCase(this.mMethod)) {
-                this.mMethod = "POST";
+        public NetworkCallSpec addRequestQueryParameter(String keyPattern, String valuePattern) {
+            this.mRequestQueryParameters.put(keyPattern, valuePattern);
+            return this;
+        }
+
+        public NetworkCallSpec addRequestBody(String body) {
+            if ("GET".equalsIgnoreCase(this.mRequestMethod)) {
+                this.mRequestMethod = "POST";
             }
-            this.mBody = body;
+            this.mRequestBody = body;
             return this;
         }
 
-        public ResponseSpec addBodyContains(String bodyBit) {
-            if ("GET".equalsIgnoreCase(this.mMethod)) {
-                this.mMethod = "POST";
+        public NetworkCallSpec addRequestBodyContains(String bodyBit) {
+            if ("GET".equalsIgnoreCase(this.mRequestMethod)) {
+                this.mRequestMethod = "POST";
             }
-            if (mBodyContains == null) {
-                mBodyContains = new HashSet<>();
+            if (mRequestBodyContains == null) {
+                mRequestBodyContains = new HashSet<>();
             }
-            mBodyContains.add(bodyBit);
+            mRequestBodyContains.add(bodyBit);
             return this;
         }
 
         public boolean matches(HttpUrl url, String method, String body) {
-            if (!url.encodedPath().matches(mPattern)) {
+            if (!url.encodedPath().matches(mRequestUrlPattern)) {
                 return false;
             }
-            if (!mMethod.equalsIgnoreCase(method)) {
+            if (!mRequestMethod.equalsIgnoreCase(method)) {
                 return false;
             }
-            if (mMethod.equalsIgnoreCase("POST") && !TextUtils.isEmpty(mBody) && !mBody.equalsIgnoreCase(body)) {
+            if (mRequestMethod.equalsIgnoreCase("POST") && !TextUtils.isEmpty(mRequestBody) && !mRequestBody.equalsIgnoreCase(body)) {
                 return false;
             }
-            if (mMethod.equalsIgnoreCase("POST") && mBodyContains != null) {
-                for (String contains : mBodyContains) {
+            if (mRequestMethod.equalsIgnoreCase("POST") && mRequestBodyContains != null) {
+                for (String contains : mRequestBodyContains) {
                     if (!body.contains(contains)) {
                         return false;
                     }
                 }
             }
-            for (Map.Entry<String, String> kvp : mQueryParameters.entrySet()) {
+            for (Map.Entry<String, String> kvp : mRequestQueryParameters.entrySet()) {
                 boolean foundKey = false;
                 boolean foundValue = false;
                 for (String key : url.queryParameterNames()) {
@@ -143,11 +148,6 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
             }
             return true;
         }
-
-        public ResponseSpec setMessage(String message) {
-            this.mMessage = message;
-            return this;
-        }
     }
 
     public AbstractMockedApiInterceptor(Context context, MockBehavior mock) {
@@ -163,19 +163,19 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
     @Override
     public Response intercept(Chain chain) throws IOException {
         Request request = chain.request();
-        ResponseSpec mockFound = null;
-        for (ResponseSpec spec : mResponseList) {
+        NetworkCallSpec mockFound = null;
+        for (NetworkCallSpec spec : mResponseList) {
             if (spec.matches(request.url(), request.method(), stringifyRequestBody(request))) {
                 mockFound = spec;
                 Response.Builder builder = new Response.Builder();
-                String bodyString = resolveAsset("mocks/"+spec.mFilename);
+                String bodyString = resolveAsset("mocks/"+spec.mResponseFilename);
                 bodyString = substituteStrings(bodyString, request);
                 if(bodyString != null) {
                     ResponseBody body = ResponseBody.create(MediaType.parse(getMockedMediaType()), bodyString);
-                    builder = builder.body(body).request(request).protocol(Protocol.HTTP_1_1).code(spec.mCode).message(spec.mMessage);
+                    builder = builder.body(body).request(request).protocol(Protocol.HTTP_1_1).code(spec.mResponseCode).message(spec.mResponseMessage);
                 }
                 if (!ignoreExistingMocks()) {
-                    noteThatThisFileWasUsed(spec.mFilename);
+                    noteThatThisFileWasUsed(spec.mResponseFilename);
                     return builder.build();
                 }
 
@@ -222,32 +222,32 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
         return query;
     }
 
-    private Response memorializeRequest(Request request, Response response, ResponseSpec mockFound) {
+    private Response memorializeRequest(Request request, Response response, NetworkCallSpec mockFound) {
         Response.Builder newResponseBuilder = response.newBuilder();
         try {
             String responseString = response.body().string();
             List<String> segments = request.url().encodedPathSegments();
             String endpointName = segments.get(segments.size() - 1);
-            String requestSpecString = "mResponseList.add(new ResponseSpec(\""+request.url().encodedPath()+"\", \"::REPLACE_ME::\")";
+            String requestSpecString = "mResponseList.add(new NetworkCallSpec(\""+request.url().encodedPath()+"\", \"::REPLACE_ME::\")";
             if (response.code() != HttpURLConnection.HTTP_OK) {
-                requestSpecString += ".setCode("+response.code()+")";
+                requestSpecString += ".setRequestCode("+response.code()+")";
                 endpointName += "-"+response.code();
             }
             if (!TextUtils.isEmpty(response.message()) && !response.message().equalsIgnoreCase("OK")) {
-                requestSpecString += ".setMessage(\""+response.message()+"\")";
+                requestSpecString += ".setResponseMessage(\""+response.message()+"\")";
             }
             if (!request.method().equalsIgnoreCase("GET")) {
-                requestSpecString += ".setMethod(\""+request.method()+"\")";
+                requestSpecString += ".setRequestMethod(\""+request.method()+"\")";
                 endpointName += "-"+request.method();
             }
             if (request.url().querySize()>0) {
                 for (String key : request.url().queryParameterNames()) {
-                    requestSpecString += ".addQueryParameter(\""+key.replace("[", "\\\\[").replace("]", "\\\\]")+"\", \""+request.url().queryParameter(key)+"\")";
+                    requestSpecString += ".addRequestQueryParameter(\""+key.replace("[", "\\\\[").replace("]", "\\\\]")+"\", \""+request.url().queryParameter(key)+"\")";
                 }
             }
             String body = stringifyRequestBody(request);
             if (body != null) {
-                requestSpecString += ".addBody(\""+body.replace("\"", "\\\"").replace("\\u003d", "\\\\u003d")+"\")";
+                requestSpecString += ".addRequestBody(\""+body.replace("\"", "\\\"").replace("\\u003d", "\\\\u003d")+"\")";
                 endpointName += "-"+body.hashCode();
             }
             requestSpecString += ");";
@@ -257,9 +257,9 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
             endpointName = getUniqueName(endpointName);
             requestSpecString = requestSpecString.replace("::REPLACE_ME::", endpointName);
             if (mockFound != null) {
-                requestSpecString += " // duplicate of existing mock "+mockFound.mPattern;
-                if (!TextUtils.isEmpty(mockFound.mBody)) {
-                    requestSpecString += " with body "+mockFound.mBody;
+                requestSpecString += " // duplicate of existing mock "+mockFound.mRequestUrlPattern;
+                if (!TextUtils.isEmpty(mockFound.mRequestBody)) {
+                    requestSpecString += " with body "+mockFound.mRequestBody;
                 }
             }
             requestSpecString += "\n";
@@ -275,8 +275,8 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
         List<Integer> usedNumbers = new ArrayList<>();
         Pattern pattern = Pattern.compile(endpointName + "-\\d*$");
         List<String> possibleCollisions = new ArrayList<>();
-        for (ResponseSpec spec : mResponseList) {
-            possibleCollisions.add(spec.mFilename);
+        for (NetworkCallSpec spec : mResponseList) {
+            possibleCollisions.add(spec.mResponseFilename);
         }
         for (String filename : getFilesDir().list()) {
             possibleCollisions.add(filename);
