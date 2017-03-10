@@ -228,42 +228,42 @@ public abstract class AbstractMockedApiInterceptor implements Interceptor {
             String responseString = response.body().string();
             List<String> segments = request.url().encodedPathSegments();
             String endpointName = segments.get(segments.size() - 1);
-            String requestSpecString = "mResponseList.add(new NetworkCallSpec(\""+request.url().encodedPath()+"\", \"::REPLACE_ME::\")";
+            String callSpecString = "mResponseList.add(new NetworkCallSpec(\""+request.url().encodedPath()+"\", \"::REPLACE_ME::\")";
             if (response.code() != HttpURLConnection.HTTP_OK) {
-                requestSpecString += ".setRequestCode("+response.code()+")";
+                callSpecString += ".setRequestCode("+response.code()+")";
                 endpointName += "-"+response.code();
             }
             if (!TextUtils.isEmpty(response.message()) && !response.message().equalsIgnoreCase("OK")) {
-                requestSpecString += ".setResponseMessage(\""+response.message()+"\")";
+                callSpecString += ".setResponseMessage(\""+response.message()+"\")";
             }
             if (!request.method().equalsIgnoreCase("GET")) {
-                requestSpecString += ".setRequestMethod(\""+request.method()+"\")";
+                callSpecString += ".setRequestMethod(\""+request.method()+"\")";
                 endpointName += "-"+request.method();
             }
             if (request.url().querySize()>0) {
                 for (String key : request.url().queryParameterNames()) {
-                    requestSpecString += ".addRequestQueryParameter(\""+key.replace("[", "\\\\[").replace("]", "\\\\]")+"\", \""+request.url().queryParameter(key)+"\")";
+                    callSpecString += ".addRequestQueryParameter(\""+key.replace("[", "\\\\[").replace("]", "\\\\]")+"\", \""+request.url().queryParameter(key)+"\")";
                 }
             }
             String body = stringifyRequestBody(request);
             if (body != null) {
-                requestSpecString += ".addRequestBody(\""+body.replace("\"", "\\\"").replace("\\u003d", "\\\\u003d")+"\")";
+                callSpecString += ".addRequestBody(\""+body.replace("\"", "\\\"").replace("\\u003d", "\\\\u003d")+"\")";
                 endpointName += "-"+body.hashCode();
             }
-            requestSpecString += ");";
+            callSpecString += ");";
             if (endpointName.length()>100) {
                 endpointName = ""+endpointName.hashCode();
             }
             endpointName = getUniqueName(endpointName);
-            requestSpecString = requestSpecString.replace("::REPLACE_ME::", endpointName);
+            callSpecString = callSpecString.replace("::REPLACE_ME::", endpointName);
             if (mockFound != null) {
-                requestSpecString += " // duplicate of existing mock "+mockFound.mRequestUrlPattern;
+                callSpecString += " // duplicate of existing mock "+mockFound.mRequestUrlPattern;
                 if (!TextUtils.isEmpty(mockFound.mRequestBody)) {
-                    requestSpecString += " with body "+mockFound.mRequestBody;
+                    callSpecString += " with body "+mockFound.mRequestBody;
                 }
             }
-            requestSpecString += "\n";
-            writeToFile(requestSpecString, responseString, endpointName);
+            callSpecString += "\n";
+            writeToFile(callSpecString, responseString, endpointName);
             newResponseBuilder.body(ResponseBody.create(response.body().contentType(), responseString));
         } catch (IOException e) {
             Timber.e("Unable to save request to "+request.url().toString()+" : ", e);
