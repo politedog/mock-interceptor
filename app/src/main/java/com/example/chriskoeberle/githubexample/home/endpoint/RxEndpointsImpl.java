@@ -10,6 +10,7 @@ import com.example.chriskoeberle.githubexample.home.model.UserImpl;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -18,7 +19,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import rx.Observable;
-import rx.Subscriber;
 import rx.functions.Func1;
 
 public class RxEndpointsImpl implements RxEndpoints {
@@ -43,37 +43,8 @@ public class RxEndpointsImpl implements RxEndpoints {
                 .addPathSegment(orgName)
                 .build();
         return getResponse(url)
-                .flatMap(new Func1<Response, Observable<String>>() {
-
-                    @Override
-                    public Observable<String> call(final Response response) {
-                        return Observable.create(new Observable.OnSubscribe<String>() {
-                            @Override
-                            public void call(Subscriber<? super String> subscriber) {
-                                try {
-                                    String responseString = response.body().string();
-                                    subscriber.onNext(responseString);
-                                    System.out.println(responseString);
-                                    subscriber.onCompleted();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                    }
-                }).flatMap(new Func1<String, Observable<Organization>>() {
-
-                    @Override
-                    public Observable<Organization> call(final String s) {
-                        return Observable.create(new Observable.OnSubscribe<Organization>() {
-                            @Override
-                            public void call(Subscriber<? super Organization> subscriber) {
-                                subscriber.onNext(ServiceInjector.resolve(Gson.class).fromJson(s, OrganizationImpl.class));
-                                subscriber.onCompleted();
-                            }
-                        });
-                    }
-                });
+                .flatMap(new FetchString())
+                .flatMap(new ToJson<Organization>(OrganizationImpl.class));
     }
 
     @Override
@@ -100,7 +71,7 @@ public class RxEndpointsImpl implements RxEndpoints {
 
     @Override
     public Observable<Gist> createGist(Gist gist) {
-         HttpUrl url = ServiceInjector.resolve(ServiceConfiguration.class).getUrlBuilder()
+        HttpUrl url = ServiceInjector.resolve(ServiceConfiguration.class).getUrlBuilder()
                 .addPathSegment(GIST)
                 .build();
         return getResponseFromPost(url, GsonUtil.getGson().toJson(gist))
@@ -110,38 +81,28 @@ public class RxEndpointsImpl implements RxEndpoints {
 
 
     private Observable<Response> getResponse(final HttpUrl url) {
-        return Observable.create(new Observable.OnSubscribe<Response>() {
+        return Observable.fromCallable(new Callable<Response>() {
             @Override
-            public void call(Subscriber<? super Response> subscriber) {
-                try {
-                    System.out.println(url);
-                    Request request = ServiceInjector.resolve(ServiceConfiguration.class).getRequestBuilder()
-                            .url(url)
-                            .build();
-                    subscriber.onNext(ServiceInjector.resolve(OkHttpClient.class).newCall(request).execute());
-                    subscriber.onCompleted();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            public Response call() throws Exception {
+                System.out.println(url);
+                Request request = ServiceInjector.resolve(ServiceConfiguration.class).getRequestBuilder()
+                        .url(url)
+                        .build();
+                return ServiceInjector.resolve(OkHttpClient.class).newCall(request).execute();
             }
         });
     }
 
     private Observable<Response> getResponseFromPost(final HttpUrl url, final String body) {
-        return Observable.create(new Observable.OnSubscribe<Response>() {
+        return Observable.fromCallable(new Callable<Response>() {
             @Override
-            public void call(Subscriber<? super Response> subscriber) {
-                try {
-                    System.out.println(url);
-                    Request request = ServiceInjector.resolve(ServiceConfiguration.class).getRequestBuilder()
-                            .post(RequestBody.create(MediaType.parse("application/json"), body))
-                            .url(url)
-                            .build();
-                    subscriber.onNext(ServiceInjector.resolve(OkHttpClient.class).newCall(request).execute());
-                    subscriber.onCompleted();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            public Response call() throws Exception {
+                System.out.println(url);
+                Request request = ServiceInjector.resolve(ServiceConfiguration.class).getRequestBuilder()
+                        .post(RequestBody.create(MediaType.parse("application/json"), body))
+                        .url(url)
+                        .build();
+                return ServiceInjector.resolve(OkHttpClient.class).newCall(request).execute();
             }
         });
     }
@@ -149,21 +110,15 @@ public class RxEndpointsImpl implements RxEndpoints {
     private class FetchString implements Func1<Response, Observable<String>> {
         @Override
         public Observable<String> call(final Response response) {
-            return Observable.create(new Observable.OnSubscribe<String>() {
+            return Observable.fromCallable(new Callable<String>() {
                 @Override
-                public void call(Subscriber<? super String> subscriber) {
+                public String call() throws Exception {
                     if (!response.isSuccessful()) {
-                        subscriber.onError(new IOException(response.message()));
-                        return;
+                        throw new IOException(response.message());
                     }
-                    try {
-                        String responseString = response.body().string();
-                        subscriber.onNext(responseString);
-                        System.out.println(responseString);
-                        subscriber.onCompleted();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    String responseString = response.body().string();
+                    System.out.println(responseString);
+                    return responseString;
                 }
             });
         }
@@ -178,11 +133,10 @@ public class RxEndpointsImpl implements RxEndpoints {
 
         @Override
         public Observable<T> call(final String s) {
-            return Observable.create(new Observable.OnSubscribe<T>() {
+            return Observable.fromCallable(new Callable<T>() {
                 @Override
-                public void call(Subscriber<? super T> subscriber) {
-                    subscriber.onNext((T) ServiceInjector.resolve(Gson.class).fromJson(s, mTargetClass));
-                    subscriber.onCompleted();
+                public T call() throws Exception {
+                    return (T) ServiceInjector.resolve(Gson.class).fromJson(s, mTargetClass);
                 }
             });
         }

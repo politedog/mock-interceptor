@@ -45,6 +45,7 @@ public class UserTest extends BaseApiTest {
         latch.await(5, TimeUnit.SECONDS);
         ResultWrapper<User> wrapper = listener.getResultWrapper();
         assertEquals(HttpURLConnection.HTTP_OK, wrapper.getErrorCode());
+        assertEquals("OK", wrapper.getErrorMessage());
         assertEquals("Bottle Rocket Studios", wrapper.getResult().getName());
     }
 }
