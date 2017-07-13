@@ -12,21 +12,21 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import io.reactivex.Flowable;
+import io.reactivex.functions.Function;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import rx.Observable;
-import rx.functions.Func1;
 
 public class RxEndpointsImpl implements RxEndpoints {
     private static final String USER = "users";
     private static final String GIST = "gists";
 
     @Override
-    public Observable<User> getUser(String userName) {
+    public Flowable<User> getUser(String userName) {
         HttpUrl url = ServiceInjector.resolve(ServiceConfiguration.class).getUrlBuilder()
                 .addPathSegment(USER)
                 .addPathSegment(userName)
@@ -37,7 +37,7 @@ public class RxEndpointsImpl implements RxEndpoints {
     }
 
     @Override
-    public Observable<Organization> getOrg(String orgName) {
+    public Flowable<Organization> getOrg(String orgName) {
         HttpUrl url = ServiceInjector.resolve(ServiceConfiguration.class).getUrlBuilder()
                 .addPathSegment(USER)
                 .addPathSegment(orgName)
@@ -48,7 +48,7 @@ public class RxEndpointsImpl implements RxEndpoints {
     }
 
     @Override
-    public Observable<Gist[]> getGists() {
+    public Flowable<Gist[]> getGists() {
         HttpUrl url = ServiceInjector.resolve(ServiceConfiguration.class).getUrlBuilder()
                 .addPathSegment(GIST)
                 .build();
@@ -58,7 +58,7 @@ public class RxEndpointsImpl implements RxEndpoints {
     }
 
     @Override
-    public Observable<Gist> getGist(String id) {
+    public Flowable<Gist> getGist(String id) {
         HttpUrl url = ServiceInjector.resolve(ServiceConfiguration.class).getUrlBuilder()
                 .addPathSegment(GIST)
                 .addPathSegment(id)
@@ -70,7 +70,7 @@ public class RxEndpointsImpl implements RxEndpoints {
     }
 
     @Override
-    public Observable<Gist> createGist(Gist gist) {
+    public Flowable<Gist> createGist(Gist gist) {
         HttpUrl url = ServiceInjector.resolve(ServiceConfiguration.class).getUrlBuilder()
                 .addPathSegment(GIST)
                 .build();
@@ -80,8 +80,8 @@ public class RxEndpointsImpl implements RxEndpoints {
     }
 
 
-    private Observable<Response> getResponse(final HttpUrl url) {
-        return Observable.fromCallable(new Callable<Response>() {
+    private Flowable<Response> getResponse(final HttpUrl url) {
+        return Flowable.fromCallable(new Callable<Response>() {
             @Override
             public Response call() throws Exception {
                 System.out.println(url);
@@ -93,8 +93,8 @@ public class RxEndpointsImpl implements RxEndpoints {
         });
     }
 
-    private Observable<Response> getResponseFromPost(final HttpUrl url, final String body) {
-        return Observable.fromCallable(new Callable<Response>() {
+    private Flowable<Response> getResponseFromPost(final HttpUrl url, final String body) {
+        return Flowable.fromCallable(new Callable<Response>() {
             @Override
             public Response call() throws Exception {
                 System.out.println(url);
@@ -107,10 +107,10 @@ public class RxEndpointsImpl implements RxEndpoints {
         });
     }
 
-    private class FetchString implements Func1<Response, Observable<String>> {
+    private class FetchString implements Function<Response, Flowable<String>> {
         @Override
-        public Observable<String> call(final Response response) {
-            return Observable.fromCallable(new Callable<String>() {
+        public Flowable<String> apply(final Response response) {
+            return Flowable.fromCallable(new Callable<String>() {
                 @Override
                 public String call() throws Exception {
                     if (!response.isSuccessful()) {
@@ -124,7 +124,7 @@ public class RxEndpointsImpl implements RxEndpoints {
         }
     }
 
-    private class ToJson<T>  implements Func1<String, Observable<T>> {
+    private class ToJson<T>  implements Function<String, Flowable<T>> {
         private final Class mTargetClass;
 
         private ToJson(Class mTargetClass) {
@@ -132,8 +132,8 @@ public class RxEndpointsImpl implements RxEndpoints {
         }
 
         @Override
-        public Observable<T> call(final String s) {
-            return Observable.fromCallable(new Callable<T>() {
+        public Flowable<T> apply(final String s) {
+            return Flowable.fromCallable(new Callable<T>() {
                 @Override
                 public T call() throws Exception {
                     return (T) ServiceInjector.resolve(Gson.class).fromJson(s, mTargetClass);

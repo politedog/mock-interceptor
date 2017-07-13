@@ -5,12 +5,12 @@ import com.example.chriskoeberle.githubexample.home.model.Gist;
 import com.example.chriskoeberle.githubexample.home.model.Organization;
 import com.example.chriskoeberle.githubexample.home.model.User;
 
-import rx.Observable;
+import io.reactivex.Flowable;
 
 public interface RxEndpoints {
-    Observable<User> getUser(String userName);
-    Observable<Organization> getOrg(String orgName);
-    Observable<Gist[]> getGists();
-    Observable<Gist> getGist(String id);
-    Observable<Gist> createGist(Gist gist);
+    Flowable<User> getUser(String userName);
+    Flowable<Organization> getOrg(String orgName);
+    Flowable<Gist[]> getGists();
+    Flowable<Gist> getGist(String id);
+    Flowable<Gist> createGist(Gist gist);
 }

@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Flowable;
+import io.reactivex.subscribers.TestSubscriber;
 import okhttp3.OkHttpClient;
-import rx.Observable;
-import rx.observers.TestSubscriber;
 
 import static org.junit.Assert.assertEquals;
 
@@ -24,11 +24,11 @@ public class UserTest extends BaseApiTest {
     @Test
     public void testUser() {
         ServiceLocator.put(OkHttpClient.class, OkHttpClientUtil.getOkHttpClient(null, MockBehavior.MOCK));
-        Observable<User> observable = ServiceInjector.resolve(RxEndpoints.class).getUser("bottlerocketapps");
+        Flowable<User> observable = ServiceInjector.resolve(RxEndpoints.class).getUser("bottlerocketapps");
         TestSubscriber<User> testSubscriber = new TestSubscriber<>();
         observable.subscribe(testSubscriber);
-        testSubscriber.assertCompleted();
-        List<User> userList = testSubscriber.getOnNextEvents();
+        testSubscriber.assertComplete();
+        List<User> userList = testSubscriber.values();
         assertEquals(userList.size(), 1);
         assertEquals(userList.get(0).getName(), "Bottle Rocket");
 
