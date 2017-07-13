@@ -2,7 +2,6 @@ package com.example.chriskoeberle.githubexample.home.model;
 
 import com.google.gson.annotations.SerializedName;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -42,6 +41,6 @@ public class GistImpl extends GithubObject implements Gist {
 
     @Override
     public void setDescription(String description) {
-
+        this.description = description;
     }
 }

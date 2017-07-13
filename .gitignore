@@ -11,6 +11,7 @@
 # Generated files
 bin/
 gen/
+app/src/test/resources/mocks
 
 # Gradle files
 .gradle/

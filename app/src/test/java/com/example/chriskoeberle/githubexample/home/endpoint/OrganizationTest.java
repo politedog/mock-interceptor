@@ -19,9 +19,9 @@ public class OrganizationTest extends BaseApiTest {
     @Test
     public void testOrganization() {
         ServiceLocator.put(OkHttpClient.class, OkHttpClientUtil.getOkHttpClient(null, MockBehavior.MOCK));
-        Flowable<Organization> observable = ServiceInjector.resolve(RxEndpoints.class).getOrg("bottlerocketstudios");
+        Flowable<Organization> flowable = ServiceInjector.resolve(RxEndpoints.class).getOrg("bottlerocketstudios");
         TestSubscriber<Organization> testSubscriber = new TestSubscriber<>();
-        observable.subscribe(testSubscriber);
+        flowable.subscribe(testSubscriber);
         testSubscriber.assertComplete();
         List<Organization> orgList = testSubscriber.values();
         assertEquals(orgList.size(), 1);

@@ -24,9 +24,9 @@ public class UserTest extends BaseApiTest {
     @Test
     public void testUser() {
         ServiceLocator.put(OkHttpClient.class, OkHttpClientUtil.getOkHttpClient(null, MockBehavior.MOCK));
-        Flowable<User> observable = ServiceInjector.resolve(RxEndpoints.class).getUser("bottlerocketapps");
+        Flowable<User> flowable = ServiceInjector.resolve(RxEndpoints.class).getUser("bottlerocketapps");
         TestSubscriber<User> testSubscriber = new TestSubscriber<>();
-        observable.subscribe(testSubscriber);
+        flowable.subscribe(testSubscriber);
         testSubscriber.assertComplete();
         List<User> userList = testSubscriber.values();
         assertEquals(userList.size(), 1);

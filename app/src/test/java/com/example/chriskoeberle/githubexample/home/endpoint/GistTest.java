@@ -23,15 +23,15 @@ public class GistTest extends BaseApiTest {
     @Test
     public void testAllGists() {
         ServiceLocator.put(OkHttpClient.class, OkHttpClientUtil.getOkHttpClient(null, MockBehavior.MOCK));
-        Flowable<Gist[]> observable = ServiceInjector.resolve(RxEndpoints.class).getGists();
+        Flowable<Gist[]> flowable = ServiceInjector.resolve(RxEndpoints.class).getGists();
         TestSubscriber<Gist[]> testSubscriber = new TestSubscriber<>();
-        observable.subscribe(testSubscriber);
+        flowable.subscribe(testSubscriber);
         testSubscriber.assertComplete();
         List<Gist[]> gists = testSubscriber.values();
         Gist gist = gists.get(0)[0];
-        Flowable<Gist> gistObservable = ServiceInjector.resolve(RxEndpoints.class).getGist(gist.getId());
+        Flowable<Gist> gistFlowable = ServiceInjector.resolve(RxEndpoints.class).getGist(gist.getId());
         TestSubscriber<Gist> gistTestSubscriber = new TestSubscriber<>();
-        gistObservable.subscribe(gistTestSubscriber);
+        gistFlowable.subscribe(gistTestSubscriber);
         Gist detailGist = (Gist) gistTestSubscriber.values().get(0);
         assertEquals(detailGist.getDescription(), gist.getDescription());
     }
@@ -39,9 +39,9 @@ public class GistTest extends BaseApiTest {
     @Test
     public void testOneGist() {
         ServiceLocator.put(OkHttpClient.class, OkHttpClientUtil.getOkHttpClient(null, MockBehavior.MOCK));
-        Flowable<Gist> observable = ServiceInjector.resolve(RxEndpoints.class).getGist("3d7cbc2f66cf5d61b8014d957a270c7c");
+        Flowable<Gist> flowable = ServiceInjector.resolve(RxEndpoints.class).getGist("3d7cbc2f66cf5d61b8014d957a270c7c");
         TestSubscriber<Gist> testSubscriber = new TestSubscriber<>();
-        observable.subscribe(testSubscriber);
+        flowable.subscribe(testSubscriber);
         testSubscriber.assertComplete();
         List<Gist> gistList = testSubscriber.values();
         Gist gist = gistList.get(0);
@@ -49,9 +49,9 @@ public class GistTest extends BaseApiTest {
         GistFile file = gist.getFile(gist.getFilenames().iterator().next());
         assertEquals(file.getContent().length(), file.getSize());
         assertEquals("config.json", file.getFilename());
-        observable = ServiceInjector.resolve(RxEndpoints.class).getGist("not actually an ID");
+        flowable = ServiceInjector.resolve(RxEndpoints.class).getGist("not actually an ID");
         testSubscriber = new TestSubscriber<>();
-        observable.subscribe(testSubscriber);
+        flowable.subscribe(testSubscriber);
         testSubscriber.assertNotComplete();
         testSubscriber.assertNoValues();
         List<Throwable> errorList = testSubscriber.errors();
@@ -67,17 +67,17 @@ public class GistTest extends BaseApiTest {
         Gist gist = new GistImpl();
         gist.setDescription(CREATE_DESCRIPTION);
         gist.addFile(CREATE_FILE_NAME, readFromAsset("mocks/javaclass"));
-        Flowable<Gist> observable = ServiceInjector.resolve(RxEndpoints.class).createGist(gist);
+        Flowable<Gist> flowable = ServiceInjector.resolve(RxEndpoints.class).createGist(gist);
         TestSubscriber<Gist> testSubscriber = new TestSubscriber<>();
-        observable.subscribe(testSubscriber);
+        flowable.subscribe(testSubscriber);
         testSubscriber.assertComplete();
         List<Gist> gistList = testSubscriber.values();
         Gist resultGist = gistList.get(0);
-        Flowable<Gist> gistObservable = ServiceInjector.resolve(RxEndpoints.class).getGist(resultGist.getId());
+        Flowable<Gist> gistFlowable = ServiceInjector.resolve(RxEndpoints.class).getGist(resultGist.getId());
         TestSubscriber<Gist> gistTestSubscriber = new TestSubscriber<>();
-        gistObservable.subscribe(gistTestSubscriber);
+        gistFlowable.subscribe(gistTestSubscriber);
         Gist detailGist = gistTestSubscriber.values().get(0);
-        assertEquals(detailGist.getDescription(), resultGist.getDescription());
+        assertEquals(detailGist.getDescription(), CREATE_DESCRIPTION);
     }
 
     protected String readFromAsset(String filename) throws IOException {
